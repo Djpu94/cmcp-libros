@@ -182,7 +182,7 @@
   font-size: 12px;
 }
 
-.books-placeholder {
+.books-page {
   min-height: 100vh;
   padding: 48px max(24px, calc((100vw - 1060px) / 2));
   box-sizing: border-box;
