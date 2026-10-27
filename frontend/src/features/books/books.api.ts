@@ -41,6 +41,40 @@ export async function getBook(id: string): Promise<Book> {
   return response.data.data
 }
 
+export interface BookWriteFields {
+  title: string
+  author: string
+  publisher: string
+  price: number
+  genre: string
+  available: boolean
+  /** `null` clears the stored image on update. */
+  imageUrl: string | null
+}
+
+export type CreateBookPayload = Partial<BookWriteFields>
+export type UpdateBookPayload = Partial<BookWriteFields>
+
+export async function createBook(payload: CreateBookPayload): Promise<Book> {
+  const response = await http.post<ApiResponse<Book>>('/books', payload)
+  return response.data.data
+}
+
+export async function updateBook(id: string, payload: UpdateBookPayload): Promise<Book> {
+  const response = await http.patch<ApiResponse<Book>>(`/books/${encodeURIComponent(id)}`, payload)
+  return response.data.data
+}
+
+export async function uploadBookCover(file: File): Promise<string> {
+  const formData = new FormData()
+  formData.append('file', file)
+  // The instance defaults to JSON; removing it lets the browser set multipart/form-data with its boundary.
+  const response = await http.post<ApiResponse<{ imageUrl: string }>>('/books/cover', formData, {
+    headers: { 'Content-Type': undefined },
+  })
+  return response.data.data.imageUrl
+}
+
 export async function deleteBook(id: string): Promise<void> {
   await http.delete(`/books/${encodeURIComponent(id)}`)
 }

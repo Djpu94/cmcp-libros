@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -7,14 +8,30 @@ import {
   Patch,
   Post,
   Query,
+  Req,
   Res,
+  UploadedFile,
+  UseInterceptors,
   UnauthorizedException,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { FileInterceptor } from '@nestjs/platform-express';
+import {
+  ApiBearerAuth,
+  ApiConsumes,
+  ApiOperation,
+  ApiTags,
+} from '@nestjs/swagger';
 import { pipeline } from 'node:stream/promises';
-import type { Response } from 'express';
+import { memoryStorage } from 'multer';
+import type { Request, Response } from 'express';
 import { CurrentUser } from '../common/current-user.decorator.js';
 import type { AuthenticatedUser } from '../common/current-user.decorator.js';
+import {
+  BOOK_COVER_MAX_BYTES,
+  UPLOADS_URL_PREFIX,
+  detectBookCoverExtension,
+  saveBookCover,
+} from './book-cover.js';
 import { BooksService } from './books.service.js';
 import { CreateBookDto } from './dto/create-book.dto.js';
 import { QueryBooksDto } from './dto/query-books.dto.js';
@@ -52,6 +69,34 @@ export class BooksController {
   @ApiOperation({ summary: 'Get a book by ID' })
   findOne(@Param('id') id: string) {
     return this.booksService.findOne(id);
+  }
+
+  @Post('cover')
+  @ApiOperation({ summary: 'Upload a PNG or JPEG cover image (max 5 MB)' })
+  @ApiConsumes('multipart/form-data')
+  @UseInterceptors(
+    FileInterceptor('file', {
+      storage: memoryStorage(),
+      limits: { fileSize: BOOK_COVER_MAX_BYTES },
+    }),
+  )
+  async uploadCover(
+    @UploadedFile() file: Express.Multer.File | undefined,
+    @Req() request: Request,
+  ): Promise<{ imageUrl: string }> {
+    if (!file) {
+      throw new BadRequestException('Debes adjuntar una imagen en el campo "file".');
+    }
+
+    const extension = detectBookCoverExtension(file.buffer);
+    if (!extension) {
+      throw new BadRequestException('Formato no válido. Sube una imagen PNG o JPG.');
+    }
+
+    const fileName = await saveBookCover(file.buffer, extension);
+    return {
+      imageUrl: `${request.protocol}://${request.get('host')}${UPLOADS_URL_PREFIX}/books/${fileName}`,
+    };
   }
 
   @Post()

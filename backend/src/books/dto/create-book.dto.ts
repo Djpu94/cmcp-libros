@@ -40,6 +40,6 @@ export class CreateBookDto {
 
   @ApiProperty({ required: false, example: 'https://example.com/book.jpg' })
   @IsOptional()
-  @IsUrl()
+  @IsUrl({ require_tld: false })
   imageUrl?: string;
 }
