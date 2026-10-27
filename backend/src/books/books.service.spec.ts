@@ -47,7 +47,7 @@ describe('BooksService', () => {
 
   it('combines filters, excludes deleted records, and paginates selected results', async () => {
     repository.findMany.mockResolvedValue([book]);
-    repository.count.mockResolvedValue(1);
+    repository.count.mockResolvedValue(12);
     const query = Object.assign(new QueryBooksDto(), {
       search: 'hobbit',
       genre: 'Fantasy',
@@ -62,10 +62,10 @@ describe('BooksService', () => {
 
     await expect(service.findAll(query)).resolves.toEqual({
       data: [book],
-      total: 1,
+      total: 12,
       page: 2,
       limit: 5,
-      totalPages: 1,
+      totalPages: 3,
     });
 
     expect(repository.findMany).toHaveBeenCalledWith({
@@ -91,6 +91,32 @@ describe('BooksService', () => {
     expect(repository.count).toHaveBeenCalledWith(
       expect.objectContaining({ deletedAt: null }),
     );
+  });
+
+  it('excludes deleted books when no optional filters are provided', async () => {
+    repository.findMany.mockResolvedValue([book]);
+    repository.count.mockResolvedValue(21);
+
+    await expect(
+      service.findAll(new QueryBooksDto()),
+    ).resolves.toEqual({
+      data: [book],
+      total: 21,
+      page: 1,
+      limit: 10,
+      totalPages: 3,
+    });
+
+    expect(repository.findMany).toHaveBeenCalledWith({
+      where: { deletedAt: null, AND: [] },
+      orderBy: { createdAt: 'desc' },
+      skip: 0,
+      take: 10,
+    });
+    expect(repository.count).toHaveBeenCalledWith({
+      deletedAt: null,
+      AND: [],
+    });
   });
 
   it('omits pagination while exporting the matching filtered dataset to CSV', async () => {
@@ -154,6 +180,32 @@ describe('BooksService', () => {
     );
   });
 
+  it('preserves explicit optional values when creating a book', async () => {
+    repository.create.mockResolvedValue(book);
+    repository.createAuditLog.mockResolvedValue({});
+
+    await service.create(
+      {
+        title: book.title,
+        author: book.author,
+        publisher: book.publisher,
+        price: 19.99,
+        genre: 'Fantasy',
+        available: false,
+        imageUrl: 'https://example.test/cover.jpg',
+      },
+      'user-1',
+    );
+
+    expect(repository.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        available: false,
+        imageUrl: 'https://example.test/cover.jpg',
+      }),
+      transaction,
+    );
+  });
+
   it('updates the book and its audit record in the same transaction', async () => {
     repository.findById.mockResolvedValue(book);
     repository.update.mockResolvedValue({ ...book, title: 'Updated title' });
@@ -179,6 +231,50 @@ describe('BooksService', () => {
     );
   });
 
+  it('applies each supplied field when updating a book', async () => {
+    repository.findById.mockResolvedValue(book);
+    repository.update.mockResolvedValue(book);
+    repository.createAuditLog.mockResolvedValue({});
+    const dto = {
+      title: 'The Hobbit',
+      author: 'J. R. R. Tolkien',
+      publisher: 'Allen & Unwin',
+      price: 19.99,
+      available: false,
+      genre: 'Fantasy' as const,
+      imageUrl: 'https://example.test/cover.jpg',
+    };
+
+    await service.update(book.id, dto, 'user-1');
+
+    expect(repository.update).toHaveBeenCalledWith(
+      book.id,
+      {
+        updatedBy: { connect: { id: 'user-1' } },
+        ...dto,
+      },
+      transaction,
+    );
+  });
+
+  it('rejects updating a book that does not exist', async () => {
+    repository.findById.mockResolvedValue(null);
+
+    await expect(
+      service.update(book.id, { title: 'Updated title' }, 'user-1'),
+    ).rejects.toBeInstanceOf(NotFoundException);
+    expect(repository.update).not.toHaveBeenCalled();
+  });
+
+  it('rejects updating a soft-deleted book', async () => {
+    repository.findById.mockResolvedValue({ ...book, deletedAt: new Date() });
+
+    await expect(
+      service.update(book.id, { title: 'Updated title' }, 'user-1'),
+    ).rejects.toBeInstanceOf(NotFoundException);
+    expect(repository.update).not.toHaveBeenCalled();
+  });
+
   it('soft-deletes the book and audits the operation transactionally', async () => {
     repository.findById.mockResolvedValue(book);
     repository.softDelete.mockResolvedValue({
@@ -188,8 +284,9 @@ describe('BooksService', () => {
     });
     repository.createAuditLog.mockResolvedValue({});
 
-    await service.remove(book.id, 'user-1');
+    const removed = await service.remove(book.id, 'user-1');
 
+    expect(removed.deletedAt).toBeInstanceOf(Date);
     expect(repository.softDelete).toHaveBeenCalledWith(
       book.id,
       'user-1',
@@ -205,11 +302,43 @@ describe('BooksService', () => {
     );
   });
 
+  it('rejects removing a book that does not exist', async () => {
+    repository.findById.mockResolvedValue(null);
+
+    await expect(service.remove(book.id, 'user-1')).rejects.toBeInstanceOf(
+      NotFoundException,
+    );
+    expect(repository.softDelete).not.toHaveBeenCalled();
+  });
+
+  it('rejects removing a soft-deleted book', async () => {
+    repository.findById.mockResolvedValue({ ...book, deletedAt: new Date() });
+
+    await expect(service.remove(book.id, 'user-1')).rejects.toBeInstanceOf(
+      NotFoundException,
+    );
+    expect(repository.softDelete).not.toHaveBeenCalled();
+  });
+
   it('does not return a soft-deleted book', async () => {
     repository.findById.mockResolvedValue({ ...book, deletedAt: new Date() });
 
     await expect(service.findOne(book.id)).rejects.toBeInstanceOf(
       NotFoundException,
     );
+  });
+
+  it('does not return a book when it does not exist', async () => {
+    repository.findById.mockResolvedValue(null);
+
+    await expect(service.findOne(book.id)).rejects.toBeInstanceOf(
+      NotFoundException,
+    );
+  });
+
+  it('returns an active book', async () => {
+    repository.findById.mockResolvedValue(book);
+
+    await expect(service.findOne(book.id)).resolves.toBe(book);
   });
 });
