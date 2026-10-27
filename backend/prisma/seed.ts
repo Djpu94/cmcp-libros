@@ -9,13 +9,14 @@ async function main(): Promise<void> {
     throw new Error('SEED_ADMIN_PASSWORD must be set');
   }
 
+  const email = process.env.SEED_ADMIN_EMAIL ?? 'admin@cmcp.cl';
   const hashedPassword = await hash(password, 12);
 
   await prisma.user.upsert({
-    where: { email: 'admin@cmcp.cl' },
+    where: { email },
     update: {},
     create: {
-      email: 'admin@cmcp.cl',
+      email,
       password: hashedPassword,
       role: 'ADMIN',
     },
