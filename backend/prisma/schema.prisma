@@ -1,0 +1,54 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String      @id @default(cuid())
+  email         String      @unique
+  password      String
+  role          String      @default("USER")
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  booksUpdated  Book[]      @relation("BookUpdatedBy")
+  auditLogs     AuditLog[]
+}
+
+model Book {
+  id          String    @id @default(cuid())
+  title       String
+  author      String
+  publisher   String
+  price       Decimal   @db.Decimal(10, 2)
+  available   Boolean   @default(true)
+  genre       String
+  imageUrl    String?
+  deletedAt   DateTime?
+  updatedById String?
+  updatedBy   User?     @relation("BookUpdatedBy", fields: [updatedById], references: [id])
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([title])
+  @@index([author])
+  @@index([genre])
+  @@index([deletedAt])
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  action    String
+  entity    String
+  entityId  String
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id])
+  metadata  Json?
+  createdAt DateTime @default(now())
+
+  @@index([entity, entityId])
+  @@index([createdAt])
+}
