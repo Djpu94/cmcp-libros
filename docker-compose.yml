@@ -1,0 +1,42 @@
+services:
+  cmcp-libros-db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-cmcp_libros}
+      POSTGRES_USER: ${POSTGRES_USER:-cmcp_libros}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in your .env file}
+    ports:
+      - "${POSTGRES_PORT:-5433}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - pg_isready -U ${POSTGRES_USER:-cmcp_libros} -d ${POSTGRES_DB:-cmcp_libros}
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  cmcp-libros-api:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-cmcp_libros}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in your .env file}@cmcp-libros-db:5432/${POSTGRES_DB:-cmcp_libros}?schema=public
+      JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET in your .env file}
+      PORT: 3000
+    ports:
+      - "${API_PORT:-3000}:3000"
+    depends_on:
+      cmcp-libros-db:
+        condition: service_healthy
+
+  cmcp-libros-web:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    ports:
+      - "${WEB_PORT:-8080}:80"
+
+volumes:
+  postgres_data:
