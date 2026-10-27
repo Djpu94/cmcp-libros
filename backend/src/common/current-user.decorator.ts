@@ -5,6 +5,8 @@ export interface AuthenticatedUser {
   id?: string;
   userId?: string;
   sub?: string;
+  email?: string;
+  role?: string;
 }
 
 type AuthenticatedRequest = Request & { user?: AuthenticatedUser };
