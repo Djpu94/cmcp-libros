@@ -85,4 +85,56 @@ describe('useBooks', () => {
     await waitFor(() => expect(result.current.error?.message).toBe('boom'))
     expect(result.current.isLoading).toBe(false)
   })
+
+  it('wraps non-Error rejections in a generic error', async () => {
+    vi.mocked(http.get).mockRejectedValueOnce('offline')
+    const { result } = renderHook(() => useBooks(), { wrapper: wrapperFor('/books') })
+
+    await waitFor(() => expect(result.current.error?.message).toBe('Error desconocido'))
+    expect(result.current.data).toEqual([])
+  })
+
+  it('reloads the current query when reload is called', async () => {
+    const { result } = renderHook(() => useBooks(), { wrapper: wrapperFor('/books?genre=Fantasy') })
+    await waitFor(() => expect(result.current.isLoading).toBe(false))
+
+    act(() => result.current.reload())
+
+    await waitFor(() => expect(http.get).toHaveBeenCalledTimes(2))
+    expect(lastParams()).toMatchObject({ genre: 'Fantasy' })
+    await waitFor(() => expect(result.current.isLoading).toBe(false))
+  })
+
+  it('changes the page without resetting it to 1', async () => {
+    const { result } = renderHook(() => useBooks(), { wrapper: wrapperFor('/books') })
+    await waitFor(() => expect(result.current.isLoading).toBe(false))
+
+    act(() => result.current.setFilter('page', 2))
+
+    await waitFor(() => expect(lastParams()).toMatchObject({ page: 2 }))
+    expect(result.current.filters.page).toBe(2)
+  })
+
+  it('clears every filter and text draft on resetFilters', async () => {
+    const { result } = renderHook(() => useBooks(), {
+      wrapper: wrapperFor('/books?search=dune&publisher=Nova&genre=Mystery&page=2'),
+    })
+    await waitFor(() => expect(result.current.isLoading).toBe(false))
+    expect(result.current.filters).toMatchObject({ search: 'dune', publisher: 'Nova', genre: 'Mystery', page: 2 })
+
+    act(() => result.current.resetFilters())
+
+    await waitFor(() =>
+      expect(result.current.filters).toMatchObject({ search: '', publisher: '', author: '', genre: '', page: 1 }),
+    )
+    await waitFor(() => expect(lastParams()).toEqual(expect.objectContaining({ page: 1 })))
+    expect(lastParams()).not.toHaveProperty('genre', 'Mystery')
+  })
+
+  it('initialises text filters from the URL', async () => {
+    const { result } = renderHook(() => useBooks(), { wrapper: wrapperFor('/books?author=Herbert') })
+
+    expect(result.current.filters.author).toBe('Herbert')
+    await waitFor(() => expect(result.current.isLoading).toBe(false))
+  })
 })

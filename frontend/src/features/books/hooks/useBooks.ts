@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useEffectEvent, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import type { Book } from '../../../entities/book'
 import { useDebounce } from '../../../shared/hooks/useDebounce'
@@ -72,23 +72,29 @@ export function useBooks(): UseBooksResult {
     error: isCurrent ? loaded.error : null,
   }
 
-  // Commit debounced text to the URL, resetting to page 1 only when a value actually changes.
-  useEffect(() => {
+  // Commit debounced text to the URL only when the debounced value changes.
+  // Reading setSearchParams through an effect event avoids re-committing a stale
+  // value whenever the router produces a new setSearchParams after a URL change.
+  const commitText = useEffectEvent((text: TextDraft) => {
     setSearchParams(
       (previous) => {
         const current = parseBookFilters(previous)
         if (
-          current.search === debouncedText.search &&
-          current.publisher === debouncedText.publisher &&
-          current.author === debouncedText.author
+          current.search === text.search &&
+          current.publisher === text.publisher &&
+          current.author === text.author
         ) {
           return previous
         }
-        return serializeBookFilters({ ...current, ...debouncedText, page: 1 })
+        return serializeBookFilters({ ...current, ...text, page: 1 })
       },
       { replace: true },
     )
-  }, [debouncedText, setSearchParams])
+  })
+
+  useEffect(() => {
+    commitText(debouncedText)
+  }, [debouncedText])
 
   // Follow external URL changes (back/forward navigation) for text fields.
   const urlTextKey = JSON.stringify([urlFilters.search, urlFilters.publisher, urlFilters.author])
