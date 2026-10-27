@@ -3,10 +3,16 @@ import { MemoryRouter } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { http } from '../../../lib/http'
 import type { Book } from '../../../entities/book'
+import { notifyToast } from '../../../shared/ui/toast-store'
 import { BookList } from './BookList'
 
 vi.mock('../../../lib/http', () => ({
   http: { get: vi.fn(), delete: vi.fn() },
+}))
+
+vi.mock('../../../shared/ui/toast-store', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../../shared/ui/toast-store')>()),
+  notifyToast: vi.fn(),
 }))
 
 const books: Book[] = [
@@ -35,6 +41,8 @@ function renderList(initialEntry = '/books') {
 describe('BookList', () => {
   beforeEach(() => {
     vi.mocked(http.get).mockReset()
+    vi.mocked(http.delete).mockReset()
+    vi.mocked(notifyToast).mockReset()
   })
 
   it('shows a spinner while loading', () => {
@@ -94,5 +102,75 @@ describe('BookList', () => {
 
     expect(await screen.findByRole('button', { name: 'Página siguiente' })).toBeDisabled()
     expect(screen.getByRole('button', { name: 'Página anterior' })).toBeEnabled()
+  })
+
+  it('shows the empty state without a reset action when no filters are active', async () => {
+    vi.mocked(http.get).mockResolvedValue(pageResponse([]))
+    renderList()
+
+    expect(await screen.findByText('No se encontraron libros')).toBeInTheDocument()
+    expect(within(screen.getByRole('status')).queryByRole('button')).not.toBeInTheDocument()
+  })
+
+  it('retries loading when the user presses Reintentar', async () => {
+    vi.mocked(http.get).mockRejectedValueOnce(new Error('network')).mockResolvedValueOnce(pageResponse(books))
+    renderList()
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Reintentar' }))
+
+    expect(await screen.findByRole('table', { name: 'Listado de libros' })).toBeInTheDocument()
+    expect(http.get).toHaveBeenCalledTimes(2)
+  })
+
+  it('deletes a book after confirmation, notifies and reloads the list', async () => {
+    vi.mocked(http.get).mockResolvedValue(pageResponse(books))
+    vi.mocked(http.delete).mockResolvedValue({})
+    vi.spyOn(window, 'confirm').mockReturnValue(true)
+    renderList()
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Eliminar Dune' }))
+
+    await waitFor(() => expect(http.delete).toHaveBeenCalledWith('/books/2'))
+    expect(window.confirm).toHaveBeenCalledWith('¿Eliminar "Dune"?')
+    expect(notifyToast).toHaveBeenCalledWith('Libro eliminado', 'success')
+    await waitFor(() => expect(http.get).toHaveBeenCalledTimes(2))
+  })
+
+  it('does not delete when the confirmation is cancelled', async () => {
+    vi.mocked(http.get).mockResolvedValue(pageResponse(books))
+    vi.spyOn(window, 'confirm').mockReturnValue(false)
+    renderList()
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Eliminar Dune' }))
+
+    expect(http.delete).not.toHaveBeenCalled()
+    expect(screen.getByRole('button', { name: 'Eliminar Dune' })).toBeEnabled()
+  })
+
+  it('keeps the row and notifies when deletion fails', async () => {
+    vi.mocked(http.get).mockResolvedValue(pageResponse(books))
+    vi.mocked(http.delete).mockRejectedValue(new Error('conflict'))
+    vi.spyOn(window, 'confirm').mockReturnValue(true)
+    renderList()
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Eliminar Dune' }))
+
+    await waitFor(() =>
+      expect(notifyToast).toHaveBeenCalledWith('No se pudo eliminar el libro'),
+    )
+    expect(screen.getByRole('button', { name: 'Eliminar Dune' })).toBeEnabled()
+    expect(screen.getByRole('rowheader', { name: 'Dune' })).toBeInTheDocument()
+  })
+
+  it('disables the delete action of a book while its deletion is pending', async () => {
+    vi.mocked(http.get).mockResolvedValue(pageResponse(books))
+    vi.mocked(http.delete).mockReturnValue(new Promise(() => {}))
+    vi.spyOn(window, 'confirm').mockReturnValue(true)
+    renderList()
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Eliminar Dune' }))
+
+    expect(await screen.findByRole('button', { name: 'Eliminar Dune' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Eliminar El Hobbit' })).toBeEnabled()
   })
 })
