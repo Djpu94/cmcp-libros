@@ -1,5 +1,7 @@
-import { BrowserRouter, Navigate, Route, Routes, useNavigate } from 'react-router-dom'
+import { BrowserRouter, Link, Navigate, Route, Routes, useNavigate, useParams } from 'react-router-dom'
 import { AuthProvider, LoginForm, useAuth } from '../features/auth'
+import { BookDetail } from '../features/books/components/BookDetail'
+import { BookForm } from '../features/books/components/BookForm'
 import { BookList } from '../features/books/components/BookList'
 import { Button, Toast } from '../shared/ui'
 import { ProtectedRoute } from './ProtectedRoute'
@@ -39,12 +41,42 @@ function BooksPage() {
         </div>
         <div className="account-actions">
           {user && <span>{user.email}</span>}
+          <Link to="/books/new" className="button">
+            Nuevo libro
+          </Link>
           <Button type="button" className="button--secondary" onClick={handleLogout}>
             Cerrar sesión
           </Button>
         </div>
       </div>
       <BookList />
+    </main>
+  )
+}
+
+function BookDetailPage() {
+  return (
+    <main className="books-page">
+      <BookDetail />
+    </main>
+  )
+}
+
+function BookCreatePage() {
+  return (
+    <main className="books-page">
+      <h1>Nuevo libro</h1>
+      <BookForm />
+    </main>
+  )
+}
+
+function BookEditPage() {
+  const { id = '' } = useParams()
+  return (
+    <main className="books-page">
+      <h1>Editar libro</h1>
+      <BookForm bookId={id} />
     </main>
   )
 }
@@ -56,6 +88,9 @@ function AppRoutes() {
         <Route path="/login" element={<LoginPage />} />
         <Route element={<ProtectedRoute />}>
           <Route path="/books" element={<BooksPage />} />
+          <Route path="/books/new" element={<BookCreatePage />} />
+          <Route path="/books/:id" element={<BookDetailPage />} />
+          <Route path="/books/:id/edit" element={<BookEditPage />} />
         </Route>
         <Route path="/" element={<Navigate to="/books" replace />} />
         <Route path="*" element={<Navigate to="/" replace />} />

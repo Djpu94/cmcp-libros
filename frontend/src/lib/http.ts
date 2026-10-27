@@ -2,6 +2,10 @@ import axios from 'axios'
 import { getToken, clearToken } from './storage'
 import { notifyToast } from '../shared/ui/toast-store'
 
+export function getHttpStatus(error: unknown): number | undefined {
+  return axios.isAxiosError(error) ? error.response?.status : undefined
+}
+
 export const http = axios.create({
   baseURL: import.meta.env.VITE_API_URL || 'http://localhost:3000',
   headers: { 'Content-Type': 'application/json' },

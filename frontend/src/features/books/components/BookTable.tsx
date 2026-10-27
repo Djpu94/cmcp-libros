@@ -1,4 +1,6 @@
+import { Link } from 'react-router-dom'
 import type { Book } from '../../../entities/book'
+import { priceFormatter } from '../books.format'
 
 interface BookTableProps {
   books: Book[]
@@ -6,7 +8,6 @@ interface BookTableProps {
   deletingId: string | null
 }
 
-const priceFormatter = new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' })
 
 export function BookTable({ books, onDelete, deletingId }: BookTableProps) {
   return (
@@ -36,15 +37,23 @@ export function BookTable({ books, onDelete, deletingId }: BookTableProps) {
               <td>{book.available ? 'Sí' : 'No'}</td>
               <td>{book.genre}</td>
               <td>
-                <button
-                  type="button"
-                  className="button--danger"
-                  aria-label={`Eliminar ${book.title}`}
-                  disabled={deletingId === book.id}
-                  onClick={() => onDelete(book)}
-                >
-                  Eliminar
-                </button>
+                <div className="book-table__actions">
+                  <Link to={`/books/${book.id}`} aria-label={`Ver ${book.title}`}>
+                    Ver
+                  </Link>
+                  <Link to={`/books/${book.id}/edit`} aria-label={`Editar ${book.title}`}>
+                    Editar
+                  </Link>
+                  <button
+                    type="button"
+                    className="button--danger"
+                    aria-label={`Eliminar ${book.title}`}
+                    disabled={deletingId === book.id}
+                    onClick={() => onDelete(book)}
+                  >
+                    Eliminar
+                  </button>
+                </div>
               </td>
             </tr>
           ))}
