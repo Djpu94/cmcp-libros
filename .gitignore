@@ -12,3 +12,17 @@ coverage/
 *.log
 .npm/
 .vite/
+
+# AI agent and customization files
+/.github/skills/
+/.github/agents/
+/.github/instructions/
+/.github/prompts/
+/.github/hooks/
+/.agents/
+/.claude/
+**/AGENTS.md
+**/copilot-instructions.md
+**/*.agent.md
+**/*.instructions.md
+**/*.prompt.md
