@@ -1,5 +1,6 @@
 import { BrowserRouter, Navigate, Route, Routes, useNavigate } from 'react-router-dom'
 import { AuthProvider, LoginForm, useAuth } from '../features/auth'
+import { BookList } from '../features/books/components/BookList'
 import { Button, Toast } from '../shared/ui'
 import { ProtectedRoute } from './ProtectedRoute'
 import './app.css'
@@ -19,7 +20,7 @@ function LoginPage() {
   )
 }
 
-function BooksPlaceholder() {
+function BooksPage() {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
 
@@ -29,12 +30,12 @@ function BooksPlaceholder() {
   }
 
   return (
-    <main className="books-placeholder">
+    <main className="books-page">
       <div className="books-header">
         <div>
           <p className="eyebrow">CMCP · Biblioteca</p>
           <h1>Libros</h1>
-          <p>La gestión de libros estará disponible próximamente.</p>
+          <p>Explora, filtra y administra la colección.</p>
         </div>
         <div className="account-actions">
           {user && <span>{user.email}</span>}
@@ -43,6 +44,7 @@ function BooksPlaceholder() {
           </Button>
         </div>
       </div>
+      <BookList />
     </main>
   )
 }
@@ -53,7 +55,7 @@ function AppRoutes() {
       <Routes>
         <Route path="/login" element={<LoginPage />} />
         <Route element={<ProtectedRoute />}>
-          <Route path="/books" element={<BooksPlaceholder />} />
+          <Route path="/books" element={<BooksPage />} />
         </Route>
         <Route path="/" element={<Navigate to="/books" replace />} />
         <Route path="*" element={<Navigate to="/" replace />} />
