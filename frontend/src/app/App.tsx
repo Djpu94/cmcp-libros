@@ -5,7 +5,6 @@ import { BookForm } from '../features/books/components/BookForm'
 import { BookList } from '../features/books/components/BookList'
 import { Button, Toast } from '../shared/ui'
 import { ProtectedRoute } from './ProtectedRoute'
-import './app.css'
 
 function LoginPage() {
   return (

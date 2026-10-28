@@ -1,0 +1,153 @@
+@layer components {
+  /* Autenticación y cabecera */
+  .auth-page {
+    @apply relative grid min-h-screen box-border place-items-center px-6 pt-12 pb-6;
+    background:
+      radial-gradient(ellipse at 50% 2%, rgb(116 77 238 / 0.12), transparent 40%),
+      var(--color-canvas);
+  }
+
+  .auth-card {
+    @apply box-border w-[min(100%,430px)] rounded-[20px] border border-line bg-white p-10 shadow-[0_24px_70px_rgb(34_24_66/0.09)];
+  }
+
+  .brand-mark {
+    @apply mb-6 grid h-11 w-11 place-items-center rounded-[13px] text-[20px] font-[750] text-white;
+    background: linear-gradient(140deg, #8659ed, #5929c8);
+  }
+
+  .eyebrow {
+    @apply mb-2 text-[12px] font-[750] tracking-[0.12em] text-brand-soft uppercase;
+  }
+
+  .auth-card h1,
+  .books-header h1 {
+    font-size: clamp(26px, 5vw, 34px);
+    @apply text-ink-strong leading-[1.2] tracking-[-0.04em];
+  }
+
+  .auth-description {
+    @apply mt-3 mb-7 text-[15px] text-muted;
+  }
+
+  .page-footer {
+    @apply absolute bottom-5 text-[12px] text-subtle;
+  }
+
+  .books-page {
+    @apply box-border min-h-screen bg-canvas py-12;
+    padding-inline: max(24px, calc((100vw - 1060px) / 2));
+  }
+
+  .books-header {
+    @apply flex items-start justify-between gap-6 rounded-2xl border border-line bg-white p-7;
+  }
+
+  .books-header p:not(.eyebrow) {
+    @apply mt-2.5 text-muted;
+  }
+
+  .account-actions {
+    @apply flex flex-wrap items-center justify-end gap-4 text-[14px] text-muted;
+  }
+
+  /* Formularios compartidos (login, Input) */
+  .login-form {
+    @apply grid gap-5;
+  }
+
+  .login-form .button {
+    @apply mt-0.5 w-full;
+  }
+
+  .input-field {
+    @apply grid gap-2;
+  }
+
+  .input-field label {
+    @apply text-[14px] font-[650] text-ink;
+  }
+
+  .text-input {
+    @apply box-border min-h-12 w-full rounded-[10px] border border-line-field bg-white px-3.5 text-[15px] text-ink-field transition duration-150 ease-in-out placeholder:text-placeholder focus:border-brand-focus focus:shadow-[0_0_0_3px_rgb(119_81_211/0.14)] focus:outline-0;
+  }
+
+  .text-input--error {
+    @apply border-danger;
+  }
+
+  .input-error,
+  .form-error {
+    @apply text-[13px] text-danger-ink;
+  }
+
+  .form-error {
+    @apply -mt-1 leading-[1.5];
+  }
+
+  /* Botones compartidos */
+  .button {
+    @apply inline-flex min-h-12 cursor-pointer items-center justify-center gap-2.5 rounded-[10px] border-0 bg-brand px-[18px] text-[15px] font-bold text-white transition duration-150 ease-in-out;
+  }
+
+  .button:hover:not(:disabled) {
+    @apply -translate-y-px bg-brand-hover;
+  }
+
+  .button:focus-visible {
+    outline: 3px solid rgb(104 64 198 / 0.3);
+    outline-offset: 3px;
+  }
+
+  .button:disabled {
+    @apply cursor-not-allowed opacity-70;
+  }
+
+  .button--secondary {
+    @apply min-h-10 border border-line-field bg-white text-ink;
+  }
+
+  .button--secondary:hover:not(:disabled) {
+    @apply bg-surface-hover;
+  }
+
+  .spinner {
+    @apply h-4 w-4 shrink-0 animate-spinner rounded-full border-2 border-current border-r-transparent;
+  }
+
+  /* Notificaciones */
+  .toast-region {
+    @apply fixed top-5 right-5 z-10 grid w-[min(360px,calc(100vw-40px))] gap-2.5;
+  }
+
+  .toast {
+    @apply rounded-[10px] bg-danger-ink px-4 py-3.5 text-[14px] text-white shadow-[0_8px_24px_rgb(34_24_66/0.16)];
+  }
+
+  .toast--success {
+    @apply bg-success;
+  }
+
+  /* Adaptaciones responsive */
+  @media (max-width: 560px) {
+    .auth-page {
+      @apply px-4 pt-6 pb-14;
+    }
+
+    .auth-card {
+      @apply px-[22px] py-7;
+    }
+
+    .page-footer {
+      @apply bottom-4 text-center;
+    }
+
+    .books-header {
+      @apply flex-col p-[22px];
+    }
+
+    .account-actions {
+      @apply justify-start;
+    }
+  }
+}
