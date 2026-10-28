@@ -18,8 +18,8 @@ import {
   type BookFormValues,
 } from '../book-form.schema'
 import { BOOK_GENRES } from '../books.constants'
+import { bookStyles } from '../books.styles'
 import { useBook } from '../hooks/useBook'
-import '../books.css'
 
 interface BookFormProps {
   /** Present in edit mode; absent when creating a book. */
@@ -36,7 +36,7 @@ function EditBookForm({ bookId }: { bookId: string }) {
 
   if (isLoading) {
     return (
-      <div className="book-list__loading">
+      <div className={bookStyles.statePanel}>
         <Spinner />
       </div>
     )
@@ -45,9 +45,9 @@ function EditBookForm({ bookId }: { bookId: string }) {
   if (error) {
     const message = getHttpStatus(error) === 404 ? 'Libro no encontrado.' : 'No se pudo cargar el libro.'
     return (
-      <div className="book-list__error" role="alert">
+      <div className={`${bookStyles.statePanel} ${bookStyles.statePanelError}`} role="alert">
         <p>{message}</p>
-        <Link to="/books" className="button button--secondary">
+        <Link to="/books" className={bookStyles.buttonSecondary}>
           Volver
         </Link>
       </div>
@@ -142,14 +142,14 @@ function BookFormFields({ book }: { book?: Book }) {
   }
 
   return (
-    <form className="book-form" onSubmit={handleSubmit(onSubmit)} noValidate>
+    <form className={bookStyles.panel} onSubmit={handleSubmit(onSubmit)} noValidate>
       {apiError && (
-        <p className="book-form__error" role="alert">
+        <p className={bookStyles.formError} role="alert">
           {apiError}
         </p>
       )}
 
-      <div className="book-form__grid">
+      <div className={bookStyles.formGrid}>
         <Input
           label="Título"
           error={errors.title?.message}
@@ -178,11 +178,11 @@ function BookFormFields({ book }: { book?: Book }) {
           disabled={isSubmitting}
           {...register('price', { valueAsNumber: true })}
         />
-        <div className="input-field">
-          <label htmlFor={genreId}>Género</label>
+        <div className={bookStyles.fieldWrapper}>
+          <label htmlFor={genreId} className={bookStyles.fieldLabel}>Género</label>
           <select
             id={genreId}
-            className={`text-input ${errors.genre ? 'text-input--error' : ''}`.trim()}
+            className={`${bookStyles.fieldInput} ${errors.genre ? bookStyles.fieldInputError : ''}`.trim()}
             aria-invalid={Boolean(errors.genre)}
             aria-describedby={errors.genre ? `${genreId}-error` : undefined}
             disabled={isSubmitting}
@@ -196,19 +196,19 @@ function BookFormFields({ book }: { book?: Book }) {
             ))}
           </select>
           {errors.genre && (
-            <span className="input-error" id={`${genreId}-error`}>
+            <span className={bookStyles.fieldError} id={`${genreId}-error`}>
               {errors.genre.message}
             </span>
           )}
         </div>
-        <div className="book-form__field--checkbox">
+        <div className={bookStyles.checkboxField}>
           <input id={availableId} type="checkbox" disabled={isSubmitting} {...register('available')} />
           <label htmlFor={availableId}>Disponible</label>
         </div>
       </div>
 
-      <fieldset className="book-form__image">
-        <legend>Portada</legend>
+      <fieldset className={bookStyles.imageFieldset}>
+        <legend className={bookStyles.imageLegend}>Portada</legend>
         <Input
           label="URL de la portada"
           type="url"
@@ -217,8 +217,8 @@ function BookFormFields({ book }: { book?: Book }) {
           disabled={isSubmitting}
           {...register('imageUrl')}
         />
-        <div className="input-field">
-          <label htmlFor={fileInputId}>Subir imagen (PNG o JPG, máximo 5 MB)</label>
+        <div className={bookStyles.fieldWrapper}>
+          <label htmlFor={fileInputId} className={bookStyles.fieldLabel}>Subir imagen (PNG o JPG, máximo 5 MB)</label>
           <input
             id={fileInputId}
             type="file"
@@ -229,19 +229,19 @@ function BookFormFields({ book }: { book?: Book }) {
             aria-describedby={fileError ? fileErrorId : undefined}
           />
           {fileError && (
-            <span className="input-error" id={fileErrorId}>
+            <span className={bookStyles.fieldError} id={fileErrorId}>
               {fileError}
             </span>
           )}
-          <span className="book-form__hint">
+          <span className={bookStyles.hint}>
             La imagen se sube al guardar el libro y reemplaza la URL de portada indicada arriba.
           </span>
         </div>
-        {previewSrc && <img className="book-form__preview" src={previewSrc} alt="Vista previa de la portada" />}
+        {previewSrc && <img className={bookStyles.preview} src={previewSrc} alt="Vista previa de la portada" />}
       </fieldset>
 
-      <div className="book-form__actions">
-        <Link to={book ? `/books/${book.id}` : '/books'} className="button button--secondary">
+      <div className={bookStyles.actions}>
+        <Link to={book ? `/books/${book.id}` : '/books'} className={bookStyles.buttonSecondary}>
           Cancelar
         </Link>
         <Button type="submit" disabled={isSubmitting}>

@@ -173,4 +173,40 @@ describe('BookList', () => {
     expect(await screen.findByRole('button', { name: 'Eliminar Dune' })).toBeDisabled()
     expect(screen.getByRole('button', { name: 'Eliminar El Hobbit' })).toBeEnabled()
   })
+
+  it('downloads the CSV with the active filters when Exportar CSV is clicked', async () => {
+    vi.mocked(http.get).mockResolvedValue(pageResponse(books))
+    const createObjectURL = vi.fn(() => 'blob:csv')
+    const revokeObjectURL = vi.fn()
+    URL.createObjectURL = createObjectURL
+    URL.revokeObjectURL = revokeObjectURL
+    renderList('/books?genre=Fantasy')
+
+    vi.mocked(http.get).mockResolvedValueOnce({
+      data: new Blob(['titulo\n'], { type: 'text/csv' }),
+      headers: { 'content-disposition': 'attachment; filename="libros.csv"' },
+    })
+    fireEvent.click(await screen.findByRole('button', { name: 'Exportar CSV' }))
+
+    await waitFor(() => expect(createObjectURL).toHaveBeenCalledTimes(1))
+    expect(http.get).toHaveBeenLastCalledWith(
+      '/books/export/csv',
+      expect.objectContaining({
+        responseType: 'blob',
+        params: expect.objectContaining({ genre: 'Fantasy' }),
+      }),
+    )
+    Reflect.deleteProperty(URL, 'createObjectURL')
+    Reflect.deleteProperty(URL, 'revokeObjectURL')
+  })
+
+  it('notifies when the CSV export fails', async () => {
+    vi.mocked(http.get).mockResolvedValue(pageResponse(books))
+    renderList()
+
+    vi.mocked(http.get).mockRejectedValueOnce(new Error('network'))
+    fireEvent.click(await screen.findByRole('button', { name: 'Exportar CSV' }))
+
+    await waitFor(() => expect(notifyToast).toHaveBeenCalledWith('No se pudo exportar el CSV'))
+  })
 })

@@ -2,8 +2,8 @@ import { Link, useParams } from 'react-router-dom'
 import { getHttpStatus } from '../../../lib/http'
 import { Spinner } from '../../../shared/ui'
 import { priceFormatter } from '../books.format'
+import { bookStyles } from '../books.styles'
 import { useBook } from '../hooks/useBook'
-import '../books.css'
 
 export function BookDetail() {
   const { id = '' } = useParams()
@@ -11,7 +11,7 @@ export function BookDetail() {
 
   if (isLoading) {
     return (
-      <div className="book-list__loading">
+      <div className={bookStyles.statePanel}>
         <Spinner />
       </div>
     )
@@ -20,11 +20,11 @@ export function BookDetail() {
   if (error) {
     const message = getHttpStatus(error) === 404 ? 'Libro no encontrado.' : 'No se pudo cargar el libro.'
     return (
-      <section className="book-detail">
-        <div className="book-list__error" role="alert">
+      <section className={bookStyles.panel}>
+        <div className={`${bookStyles.statePanel} ${bookStyles.statePanelError}`} role="alert">
           <p>{message}</p>
         </div>
-        <Link to="/books" className="button button--secondary">
+        <Link to="/books" className={bookStyles.buttonSecondary}>
           Volver
         </Link>
       </section>
@@ -34,36 +34,36 @@ export function BookDetail() {
   if (!book) return null
 
   return (
-    <section className="book-detail" aria-labelledby="book-detail-title">
-      <div className="book-detail__body">
+    <section className={bookStyles.panel} aria-labelledby="book-detail-title">
+      <div className={bookStyles.detailBody}>
         {book.imageUrl ? (
-          <img className="book-detail__cover" src={book.imageUrl} alt={`Portada de ${book.title}`} />
+          <img className={bookStyles.detailCover} src={book.imageUrl} alt={`Portada de ${book.title}`} />
         ) : (
-          <div className="book-detail__cover book-detail__cover--empty" aria-hidden="true">
+          <div className={`${bookStyles.detailCover} ${bookStyles.detailCoverEmpty}`} aria-hidden="true">
             Sin portada
           </div>
         )}
-        <div className="book-detail__content">
-          <h1 id="book-detail-title">{book.title}</h1>
-          <dl className="book-detail__fields">
-            <dt>Autor</dt>
-            <dd>{book.author}</dd>
-            <dt>Editorial</dt>
-            <dd>{book.publisher}</dd>
-            <dt>Precio</dt>
-            <dd>{priceFormatter.format(Number(book.price))}</dd>
-            <dt>Género</dt>
-            <dd>{book.genre}</dd>
-            <dt>Disponible</dt>
-            <dd>{book.available ? 'Sí' : 'No'}</dd>
+        <div>
+          <h1 id="book-detail-title" className={bookStyles.detailTitle}>{book.title}</h1>
+          <dl className={bookStyles.detailFields}>
+            <dt className={bookStyles.detailTerm}>Autor</dt>
+            <dd className={bookStyles.detailDescription}>{book.author}</dd>
+            <dt className={bookStyles.detailTerm}>Editorial</dt>
+            <dd className={bookStyles.detailDescription}>{book.publisher}</dd>
+            <dt className={bookStyles.detailTerm}>Precio</dt>
+            <dd className={bookStyles.detailDescription}>{priceFormatter.format(Number(book.price))}</dd>
+            <dt className={bookStyles.detailTerm}>Género</dt>
+            <dd className={bookStyles.detailDescription}>{book.genre}</dd>
+            <dt className={bookStyles.detailTerm}>Disponible</dt>
+            <dd className={bookStyles.detailDescription}>{book.available ? 'Sí' : 'No'}</dd>
           </dl>
         </div>
       </div>
-      <div className="book-detail__actions">
-        <Link to="/books" className="button button--secondary">
+      <div className={bookStyles.actions}>
+        <Link to="/books" className={bookStyles.buttonSecondary}>
           Volver
         </Link>
-        <Link to={`/books/${book.id}/edit`} className="button">
+        <Link to={`/books/${book.id}/edit`} className={bookStyles.buttonPrimary}>
           Editar
         </Link>
       </div>

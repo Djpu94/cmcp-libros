@@ -1,5 +1,6 @@
 import { BOOK_GENRES, BOOK_SORT_FIELDS, BOOK_SORT_LABELS, SORT_ORDER_LABELS, isBookGenre, isBookSortField, type SortOrder } from '../books.constants'
 import type { BookFilterState, SetBookFilter } from '../books.filters'
+import { bookStyles } from '../books.styles'
 
 interface BookFiltersProps {
   filters: BookFilterState
@@ -11,11 +12,12 @@ export function BookFilters({ filters, setFilter, onReset }: BookFiltersProps) {
   const nextOrder: SortOrder = filters.order === 'asc' ? 'desc' : 'asc'
 
   return (
-    <form className="book-filters" role="search" aria-label="Filtrar libros" onSubmit={(event) => event.preventDefault()}>
-      <div className="book-filters__field">
+    <form className={bookStyles.filtersGrid} role="search" aria-label="Filtrar libros" onSubmit={(event) => event.preventDefault()}>
+      <div className={bookStyles.filterField}>
         <label htmlFor="filter-search">Buscar por título</label>
         <input
           id="filter-search"
+          className={bookStyles.filterControl}
           type="search"
           value={filters.search}
           onChange={(event) => setFilter('search', event.target.value)}
@@ -23,10 +25,11 @@ export function BookFilters({ filters, setFilter, onReset }: BookFiltersProps) {
         />
       </div>
 
-      <div className="book-filters__field">
+      <div className={bookStyles.filterField}>
         <label htmlFor="filter-genre">Género</label>
         <select
           id="filter-genre"
+          className={bookStyles.filterControl}
           value={filters.genre}
           onChange={(event) => {
             const value = event.target.value
@@ -42,29 +45,32 @@ export function BookFilters({ filters, setFilter, onReset }: BookFiltersProps) {
         </select>
       </div>
 
-      <div className="book-filters__field">
+      <div className={bookStyles.filterField}>
         <label htmlFor="filter-publisher">Editorial</label>
         <input
           id="filter-publisher"
+          className={bookStyles.filterControl}
           type="text"
           value={filters.publisher}
           onChange={(event) => setFilter('publisher', event.target.value)}
         />
       </div>
 
-      <div className="book-filters__field">
+      <div className={bookStyles.filterField}>
         <label htmlFor="filter-author">Autor</label>
         <input
           id="filter-author"
+          className={bookStyles.filterControl}
           type="text"
           value={filters.author}
           onChange={(event) => setFilter('author', event.target.value)}
         />
       </div>
 
-      <div className="book-filters__field book-filters__field--checkbox">
+      <div className={bookStyles.filterFieldCheckbox}>
         <input
           id="filter-available"
+          className="size-4 accent-brand"
           type="checkbox"
           checked={filters.available === true}
           onChange={(event) => setFilter('available', event.target.checked ? true : undefined)}
@@ -72,10 +78,11 @@ export function BookFilters({ filters, setFilter, onReset }: BookFiltersProps) {
         <label htmlFor="filter-available">Solo disponibles</label>
       </div>
 
-      <div className="book-filters__field">
+      <div className={bookStyles.filterField}>
         <label htmlFor="filter-sort">Ordenar por</label>
         <select
           id="filter-sort"
+          className={bookStyles.filterControl}
           value={filters.sortBy}
           onChange={(event) => {
             const value = event.target.value
@@ -90,19 +97,16 @@ export function BookFilters({ filters, setFilter, onReset }: BookFiltersProps) {
         </select>
       </div>
 
-      <div className="book-filters__field">
+      <div className={bookStyles.filterActions}>
         <button
           type="button"
-          className="button--secondary"
+          className={bookStyles.buttonSecondary}
           aria-label={`Orden ${SORT_ORDER_LABELS[filters.order].toLowerCase()}, cambiar a ${SORT_ORDER_LABELS[nextOrder].toLowerCase()}`}
           onClick={() => setFilter('order', nextOrder)}
         >
           {filters.order === 'asc' ? 'Ascendente ↑' : 'Descendente ↓'}
         </button>
-      </div>
-
-      <div className="book-filters__field">
-        <button type="button" className="button--secondary" onClick={onReset}>
+        <button type="button" className={bookStyles.buttonSecondary} onClick={onReset}>
           Limpiar filtros
         </button>
       </div>

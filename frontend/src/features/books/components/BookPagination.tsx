@@ -1,3 +1,5 @@
+import { bookStyles } from '../books.styles'
+
 interface BookPaginationProps {
   page: number
   totalPages: number
@@ -11,10 +13,10 @@ export function BookPagination({ page, totalPages, total, onPageChange, disabled
   const hasNext = totalPages > 0 && page < totalPages
 
   return (
-    <nav className="book-pagination" aria-label="Paginación de libros">
+    <nav className={bookStyles.pagination} aria-label="Paginación de libros">
       <button
         type="button"
-        className="button--secondary"
+        className={bookStyles.buttonSecondary}
         aria-label="Página anterior"
         disabled={disabled || !hasPrevious}
         onClick={() => onPageChange(page - 1)}
@@ -26,7 +28,7 @@ export function BookPagination({ page, totalPages, total, onPageChange, disabled
       </span>
       <button
         type="button"
-        className="button--secondary"
+        className={bookStyles.buttonSecondary}
         aria-label="Página siguiente"
         disabled={disabled || !hasNext}
         onClick={() => onPageChange(page + 1)}
