@@ -14,6 +14,24 @@ El proyecto es un monorepo de npm workspaces con dos aplicaciones independientes
 | Web | React 19, Vite 8, React Router 7, Tailwind CSS 4, axios, react-hook-form, zod | `frontend/` | Interfaz de login, listado, filtros, formularios y exportación |
 | Base de datos | PostgreSQL 15 | Compose (`cmcp-libros-db`) | Usuarios, libros y auditoría |
 
+Índice: [Cumplimiento](#cumplimiento-de-la-prueba-técnica) · [Estructura](#estructura-del-monorepo) · [Instalación](#requisitos-previos) · [Configuración](#variables-de-entorno) · [Uso](#guía-de-uso) · [Arquitectura](#arquitectura) · [Modelo de datos](#modelo-de-datos) · [Decisiones](#decisiones-y-alternativas-descartadas) · [Pruebas](#pruebas-y-cobertura) · [Supuestos y limitaciones](#supuestos) · [Desarrollo local](#desarrollo-local-sin-docker)
+
+## Cumplimiento de la prueba técnica
+
+| Requisito | Dónde se resuelve |
+|---|---|
+| Login de autenticación (JWT) | [Guía de uso](#guía-de-uso), `POST /auth/login` |
+| Listado con filtros (género, editorial, autor, disponibilidad), orden, paginación server-side y búsqueda con debounce | [Guía de uso](#guía-de-uso), `GET /books` |
+| Alta y edición con validación reactiva y carga de portada | `frontend/src/features/books/book-form.schema.ts`, `POST /books/cover` |
+| Visualización del detalle de un libro | `GET /books/:id` |
+| Arquitectura modular con principios SOLID | [Backend](#backend-nestjs) |
+| CRUD REST, exportación CSV, soft delete y auditoría | [Endpoints](#endpoints) |
+| Prisma, modelo normalizado, índices y transacciones | [Modelo de datos](#modelo-de-datos) |
+| Tests unitarios de frontend y backend, cobertura objetivo ≥ 80% | [Pruebas y cobertura](#pruebas-y-cobertura) |
+| Manejo de errores en frontend y backend, interceptores | [Piezas transversales](#piezas-transversales-common), [Frontend](#frontend-react--vite) |
+| `docker-compose.yml` para todo el stack | [Inicio rápido con Docker](#inicio-rápido-con-docker) |
+| Documentación: instalación, uso, arquitectura, Swagger, diagramas | Este README y `/api/docs` |
+
 ## Estructura del monorepo
 
 ```text
@@ -39,7 +57,8 @@ Scripts de la raíz (ejecutan el script equivalente en cada workspace):
 | `npm ci` | Instala dependencias de backend y frontend con el lockfile raíz |
 | `npm run build` | Genera el cliente de Prisma y compila backend (`prisma generate && nest build`) y frontend (`tsc -b && vite build`) |
 | `npm run lint` | Ejecuta oxlint en ambos workspaces |
-| `npm run test` | Ejecuta las pruebas del backend (el frontend se prueba con `--workspace frontend`) |
+| `npm run test:backend` | Ejecuta las pruebas unitarias del backend |
+| `npm run test:frontend` | Ejecuta las pruebas unitarias del frontend |
 
 Para ejecutar un script de un solo workspace usa `npm run <script> --workspace backend` o `--workspace frontend`.
 
@@ -97,7 +116,7 @@ En Compose, `VITE_API_URL` se pasa como argumento de build del frontend (`http:/
 
 1. **Login**: abre el frontend e inicia sesión con el administrador creado por el seed (`admin@cmcp.cl` y `SEED_ADMIN_PASSWORD`). Un 401 en cualquier llamada cierra la sesión y redirige a `/login`.
 2. **Listado**: la tabla muestra los libros activos con paginación del lado del servidor.
-3. **Filtros**: búsqueda por texto, autor, editorial, género y disponibilidad, con orden y paginación. La búsqueda de texto espera a que dejes de escribir (debounce) antes de consultar la API y los filtros se reflejan en la URL. "Limpiar filtros" restablece todos los campos.
+3. **Filtros**: búsqueda por texto, autor, editorial, género y disponibilidad, con orden por un campo y paginación. La búsqueda de texto espera a que dejes de escribir (debounce) antes de consultar la API y los filtros se reflejan en la URL. "Limpiar filtros" restablece todos los campos.
 4. **Crear y editar**: el formulario valida en cliente y el backend revalida con `ValidationPipe` (`whitelist`, `forbidNonWhitelisted`). Las portadas se suben antes de guardar el libro.
 5. **Exportar CSV**: `GET /books/export/csv` devuelve los libros que cumplen los filtros activos.
 6. **Eliminar**: el borrado es lógico (`deletedAt`). Los libros eliminados dejan de aparecer en las consultas, pero permanecen en la base de datos. No hay endpoint de restauración todavía.
@@ -117,7 +136,7 @@ flowchart LR
     DB[(PostgreSQL 15)]
     VOL[(book_uploads<br/>portadas)]
   end
-  FE -- "HTTP JSON + Bearer JWT" --> API
+  FE -- "HTTP JSON + JWT Bearer" --> API
   WEB -. sirve bundle .-> FE
   API -- Prisma Client --> DB
   API -- escribe/lee --> VOL
@@ -148,7 +167,7 @@ Swagger documenta todos los endpoints y sus DTOs en `/api/docs` (por ejemplo, `h
 
 #### Arranque y configuración
 
-- `main.ts` registra un `ValidationPipe` global (`whitelist`, `forbidNonWhitelisted`, `transform`), CORS configurable con `CORS_ORIGIN`, CORS configurable con `CORS_ORIGIN`, Swagger montado en `/api/docs` con esquema de autenticación Bearer (`addBearerAuth`), y la carpeta `uploads/` servida como estática en `/uploads`.
+- `main.ts` registra un `ValidationPipe` global (`whitelist`, `forbidNonWhitelisted`, `transform`), CORS configurable con `CORS_ORIGIN`, Swagger montado en `/api/docs` con esquema de autenticación Bearer (`addBearerAuth`), y la carpeta `uploads/` servida como estática en `/uploads`.
 - El puerto es `PORT` o 3000 por defecto.
 - `start` y `start:dev` cargan `../.env` con `--env-file-if-exists`. `start:prod` ejecuta `node dist/main` y espera las variables ya definidas en el entorno (como en el contenedor).
 - Las migraciones se aplican con `prisma migrate deploy`, nunca con `migrate dev`, en contenedores y producción.
@@ -228,7 +247,9 @@ npm run test:cov --workspace frontend   # frontend con cobertura (Vitest + v8)
 npm run lint                            # oxlint en todos los workspaces
 ```
 
-La cobertura del frontend cubre la lógica de `features/auth`, `features/books` y `shared/hooks` por encima del 80% en líneas, sentencias, ramas y funciones. Los componentes presentacionales de `shared/ui` quedan fuera del objetivo de cobertura porque no contienen lógica.
+Objetivo: al menos 80% de cobertura en líneas, sentencias, ramas y funciones, tanto en backend como en frontend. Los informes se generan en `backend/coverage/` y `frontend/coverage/` con `npm run test:cov`; las cifras exactas se verifican ahí, no se fijan en este documento.
+
+Desde la raíz también puedes ejecutar `npm run test:backend` y `npm run test:frontend`.
 
 ## Limitaciones conocidas
 
@@ -236,6 +257,8 @@ La cobertura del frontend cubre la lógica de `features/auth`, `features/books` 
 - **Sin refresh tokens**: el access token expira según `JWT_EXPIRATION`. Se implementaría un par access/refresh con rotación y revocación en base de datos.
 - **Sin RBAC**: el campo `role` existe, pero los endpoints solo exigen autenticación. Se implementaría con un decorador `@Roles()` y un guard que compare el rol del usuario.
 - **Sin rate limiting en login**: se añadiría `@nestjs/throttler` en el endpoint de autenticación.
+- **Ordenamiento por un solo campo**: la API acepta `sortBy` y `order`, pero no ordena por varios campos a la vez. Se implementaría con un parámetro `sort=campo:asc,campo2:desc` que se traduzca a un `orderBy` de Prisma con varios elementos.
+- **Índices parciales en filtros**: existen índices en `title`, `author`, `genre` y `deletedAt`. Los filtros por `publisher` y `available` no tienen índice todavía; se añadirían con `@@index` según el volumen de datos y las consultas más frecuentes.
 
 ## Desarrollo local sin Docker
 
@@ -263,9 +286,10 @@ npm run dev --workspace frontend        # Vite en http://localhost:5173
 
 Sin `VITE_API_URL`, el frontend apunta a `http://localhost:3000`, y `CORS_ORIGIN` admite `http://localhost:5173` por defecto, así que no hace falta configurar nada más.
 
-## Credenciales iniciales
+## Supuestos
 
-- Email: `SEED_ADMIN_EMAIL` (por defecto `admin@cmcp.cl`).
-- Contraseña: el valor de `SEED_ADMIN_PASSWORD` que definiste en `.env` antes de ejecutar el seed. No hay una contraseña por defecto; el seed falla si la variable falta.
-
-La API requiere `JWT_SECRET` y no inicia si falta. `JWT_EXPIRATION` es opcional y usa `15m` por defecto.
+- **Credenciales iniciales**: el email del administrador es `SEED_ADMIN_EMAIL` (por defecto `admin@cmcp.cl`) y la contraseña es el valor de `SEED_ADMIN_PASSWORD` en `.env`. No hay contraseña por defecto; el seed falla si la variable falta.
+- **Secretos**: la API requiere `JWT_SECRET` y no inicia sin él. `JWT_EXPIRATION` usa `15m` si no se define.
+- **Moneda e idioma**: el precio se guarda como `Decimal(10,2)` sin moneda explícita, asumiendo una sola moneda. La interfaz y la documentación están en español.
+- **Roles**: se asume un único administrador operativo; el campo `role` existe para futuras reglas de acceso.
+- **Token en el navegador**: se guarda en `sessionStorage` por simplicidad. En producción conviene valorar cookies `HttpOnly` para mitigar el robo de token por XSS.
