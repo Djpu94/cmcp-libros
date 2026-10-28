@@ -11,7 +11,7 @@ El proyecto es un monorepo de npm workspaces con dos aplicaciones independientes
 | Parte | Tecnología | Carpeta | Responsabilidad |
 |---|---|---|---|
 | API | NestJS 12, Prisma 6, PostgreSQL 15, Passport JWT | `backend/` | Autenticación, reglas de negocio, persistencia, CSV, portadas y Swagger |
-| Web | React 19, Vite 8, React Router 7, axios, react-hook-form, zod | `frontend/` | Interfaz de login, listado, filtros, formularios y exportación |
+| Web | React 19, Vite 8, React Router 7, Tailwind CSS 4, axios, react-hook-form, zod | `frontend/` | Interfaz de login, listado, filtros, formularios y exportación |
 | Base de datos | PostgreSQL 15 | Compose (`cmcp-libros-db`) | Usuarios, libros y auditoría |
 
 ## Estructura del monorepo
@@ -23,7 +23,7 @@ cmcp-libros/
 │   ├── src/                  módulos auth, books, common, prisma
 │   └── Dockerfile            imagen multi-etapa, usuario no root
 ├── frontend/                 SPA React + Vite (workspace)
-│   ├── src/                  app, features, shared, lib, entities
+│   ├── src/                  app, features, shared, lib, entities, styles
 │   ├── nginx.conf            sirve el build estático en el puerto 8080
 │   └── Dockerfile            build con Vite y servidor nginx
 ├── docker-compose.yml        db + api + web
@@ -144,11 +144,11 @@ flowchart LR
 | `DELETE` | `/books/:id` | JWT | Soft delete (marca `deletedAt`) |
 | `POST` | `/books/cover` | JWT | Sube una portada (campo `file`, PNG o JPEG, máx. 5 MB, validado por firma de bytes) |
 
-Swagger documenta todos los endpoints y sus DTOs en `/api/docs`.
+Swagger documenta todos los endpoints y sus DTOs en `/api/docs` (por ejemplo, `http://localhost:3000/api/docs`). La especificación JSON generada está disponible en `/api/docs-json`.
 
 #### Arranque y configuración
 
-- `main.ts` registra un `ValidationPipe` global (`whitelist`, `forbidNonWhitelisted`, `transform`), CORS configurable con `CORS_ORIGIN`, Swagger con esquema Bearer y la carpeta `uploads/` como estática en `/uploads`.
+- `main.ts` registra un `ValidationPipe` global (`whitelist`, `forbidNonWhitelisted`, `transform`), CORS configurable con `CORS_ORIGIN`, CORS configurable con `CORS_ORIGIN`, Swagger montado en `/api/docs` con esquema de autenticación Bearer (`addBearerAuth`), y la carpeta `uploads/` servida como estática en `/uploads`.
 - El puerto es `PORT` o 3000 por defecto.
 - `start` y `start:dev` cargan `../.env` con `--env-file-if-exists`. `start:prod` ejecuta `node dist/main` y espera las variables ya definidas en el entorno (como en el contenedor).
 - Las migraciones se aplican con `prisma migrate deploy`, nunca con `migrate dev`, en contenedores y producción.
@@ -162,7 +162,8 @@ Swagger documenta todos los endpoints y sus DTOs en `/api/docs`.
 
 ### Frontend (React + Vite)
 
-- **Estructura**: `app/` (rutas y `ProtectedRoute`), `features/` (`auth` y `books`), `shared/` (hooks y componentes de UI sin lógica de negocio), `lib/` (cliente HTTP y almacenamiento del token) y `entities/` (tipos del dominio en el cliente).
+- **Estructura**: `app/` (rutas y `ProtectedRoute`), `features/` (`auth` y `books`), `shared/` (hooks y componentes de UI sin lógica de negocio), `lib/` (cliente HTTP y almacenamiento del token), `entities/` (tipos del dominio en el cliente) y `styles/` (punto de entrada de Tailwind CSS v4 con `theme.css`, `base.css` y `components.css`).
+- **Estilos**: Tailwind CSS v4 se integra con el plugin `@tailwindcss/vite`. Los estilos compartidos viven en `src/styles/`, y los de la feature `books` en `books.styles.ts`. No hay archivos CSS por componente.
 - **Rutas**: `/login`, `/books`, `/books/new`, `/books/:id`, `/books/:id/edit`. `ProtectedRoute` redirige a `/login` si no hay sesión.
 - **Auth**: `AuthProvider` expone `user`, `isAuthenticated`, `login` y `logout` mediante contexto. El token se guarda en `sessionStorage` y en memoria.
 - **Books**: `books.api.ts` concentra las llamadas (incluida la descarga del CSV); `books.filters.ts` convierte los filtros a query string y viceversa; `book-form.schema.ts` valida el formulario con zod; `hooks/useBooks.ts` mantiene el listado sincronizado con la URL.
