@@ -24,9 +24,13 @@ services:
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-cmcp_libros}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in your .env file}@cmcp-libros-db:5432/${POSTGRES_DB:-cmcp_libros}?schema=public
       JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET in your .env file}
+      JWT_EXPIRATION: ${JWT_EXPIRATION:-15m}
+      CORS_ORIGIN: http://localhost:${WEB_PORT:-8080}
       PORT: 3000
     ports:
       - "${API_PORT:-3000}:3000"
+    volumes:
+      - book_uploads:/app/backend/uploads
     depends_on:
       cmcp-libros-db:
         condition: service_healthy
@@ -35,8 +39,11 @@ services:
     build:
       context: .
       dockerfile: frontend/Dockerfile
+      args:
+        VITE_API_URL: http://localhost:${API_PORT:-3000}
     ports:
-      - "${WEB_PORT:-8080}:80"
+      - "${WEB_PORT:-8080}:8080"
 
 volumes:
   postgres_data:
+  book_uploads:
