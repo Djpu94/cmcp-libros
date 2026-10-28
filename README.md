@@ -37,7 +37,7 @@ Scripts de la raíz (ejecutan el script equivalente en cada workspace):
 | Comando | Qué hace |
 |---|---|
 | `npm ci` | Instala dependencias de backend y frontend con el lockfile raíz |
-| `npm run build` | Compila backend (`nest build`) y frontend (`tsc -b && vite build`) |
+| `npm run build` | Genera el cliente de Prisma y compila backend (`prisma generate && nest build`) y frontend (`tsc -b && vite build`) |
 | `npm run lint` | Ejecuta oxlint en ambos workspaces |
 | `npm run test` | Ejecuta las pruebas del backend (el frontend se prueba con `--workspace frontend`) |
 
