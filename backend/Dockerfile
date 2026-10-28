@@ -1,28 +1,31 @@
-FROM node:24-alpine AS build
+# syntax=docker/dockerfile:1
 
+FROM node:24-bookworm-slim AS base
 WORKDIR /app
-
 COPY package.json package-lock.json ./
-COPY backend/package.json ./backend/package.json
-COPY frontend/package.json ./frontend/package.json
-COPY backend/prisma ./backend/prisma
-RUN npm ci --workspace=backend --include-workspace-root=false
+COPY backend/package.json backend/
+COPY frontend/package.json frontend/
 
-COPY backend ./backend
-RUN npm run build --workspace=backend
+FROM base AS build
+RUN npm ci
+COPY backend backend
+RUN npm exec --workspace backend -- prisma generate \
+  && npm run build --workspace backend
 
-FROM node:24-alpine AS runtime
-
+FROM base AS runtime
 ENV NODE_ENV=production
-WORKDIR /app
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends openssl ca-certificates \
+  && rm -rf /var/lib/apt/lists/*
+RUN npm ci --omit=dev --workspace backend \
+  && npm cache clean --force
+COPY backend/prisma backend/prisma
+COPY --from=build /app/backend/dist backend/dist
+RUN npm exec --workspace backend -- prisma generate \
+  && mkdir -p backend/uploads/books \
+  && chown -R node:node /app/backend/uploads
 
-COPY package.json package-lock.json ./
-COPY backend/package.json ./backend/package.json
-COPY frontend/package.json ./frontend/package.json
-COPY backend/prisma ./backend/prisma
-RUN npm ci --omit=dev --workspace=backend --include-workspace-root=false
-
-COPY --from=build /app/backend/dist ./backend/dist
-
+WORKDIR /app/backend
+USER node
 EXPOSE 3000
-CMD ["npm", "run", "start:prod", "--workspace=backend"]
+CMD ["sh", "-c", "npx prisma migrate deploy && node dist/main"]

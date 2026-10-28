@@ -11,7 +11,7 @@ import { PrismaService } from './prisma/prisma.service.js';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
-  app.enableCors({ origin: 'http://localhost:5173' });
+  app.enableCors({ origin: process.env.CORS_ORIGIN ?? 'http://localhost:5173' });
   app.useStaticAssets(UPLOADS_ROOT_DIR, { prefix: UPLOADS_URL_PREFIX });
   app.useGlobalPipes(
     new ValidationPipe({

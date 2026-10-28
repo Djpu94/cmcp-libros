@@ -1,0 +1,12 @@
+**/node_modules
+**/dist
+**/coverage
+frontend/*
+!frontend/package.json
+.git
+.env
+.env.*
+!.env.example
+.github
+**/*.log
+**/uploads
